@@ -53,3 +53,6 @@ The `events.venue_ids` field uses a UUID array rather than a join table. Since t
 
 ### Permissions
 Only the user who created an event (matched via `created_by`) can edit or delete that event. All users can view all events on the dashboard.
+
+
+

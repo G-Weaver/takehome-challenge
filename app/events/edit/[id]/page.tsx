@@ -14,7 +14,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-
 import { Button } from "@/components/ui/button"
 import {
     Form,
@@ -28,11 +27,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import { Input } from "@/components/ui/input"
-import { createEvent, getSports } from "@/lib/actions/events.actions"
-import { useRouter } from "next/navigation"
+import { getEventById, updateEvent } from "@/lib/actions/events.actions"
+import { useRouter, useParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
-import Link from "next/link"
 
 const formSchema = z.object({
     eventName: z.string().min(2, "Event name must be at least 2 characters"),
@@ -42,11 +40,13 @@ const formSchema = z.object({
     venues: z.string().min(1, "At least one venue is required"),
 })
 
-export default function EventForm() {
+export default function EditEventForm() {
     const router = useRouter()
+    const params = useParams()
+    const eventId = params.id as string
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [sports, setSports] = useState<{ id: string; name: string }[]>([])
+    const [isLoading, setIsLoading] = useState(true)
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -63,14 +63,31 @@ export default function EventForm() {
     const [time, setTime] = React.useState<string>("")
 
     useEffect(() => {
-        async function fetchSports() {
-            const result = await getSports()
+        async function loadEvent() {
+            const result = await getEventById(eventId)
+
             if (result.success && result.data) {
-                setSports(result.data)
+                const event = result.data
+                const eventDate = new Date(event.date_time)
+
+                form.setValue("eventName", event.name)
+                form.setValue("sportType", event.sports.name)
+                form.setValue("dateTime", eventDate)
+                form.setValue("description", event.description)
+
+                const venueNames = event.venues?.map((v: any) => v.name).join(", ") || ""
+                form.setValue("venues", venueNames)
+
+                setDate(eventDate)
+                setTime(eventDate.toTimeString().slice(0, 5))
+            } else {
+                setError(result.error || "Failed to load event")
             }
+            setIsLoading(false)
         }
-        fetchSports()
-    }, [])
+
+        loadEvent()
+    }, [eventId, form])
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true)
@@ -78,20 +95,28 @@ export default function EventForm() {
 
         const venuesArray = values.venues.split(",").map(v => v.trim()).filter(Boolean)
 
-        const result = await createEvent({
+        const result = await updateEvent(eventId, {
             ...values,
             venues: venuesArray
         })
 
         if (result.success) {
-            toast.success("Event created successfully!")
+            toast.success("Event updated successfully!")
             router.push("/")
         } else {
-            const errorMessage = result.error || "Failed to create event"
+            const errorMessage = result.error || "Failed to update event"
             setError(errorMessage)
             toast.error(errorMessage)
             setIsSubmitting(false)
         }
+    }
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-black py-12 px-4 flex items-center justify-center">
+                <div className="text-cyan-400 text-xl">Loading event...</div>
+            </div>
+        )
     }
 
     return (
@@ -100,24 +125,14 @@ export default function EventForm() {
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl animate-pulse"></div>
             <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
 
-            <div className="max-w-7xl mx-auto relative z-10">
-                <div className="mb-6">
-                    <Link href="/" className="transition-transform hover:scale-105 inline-block">
-                        <img
-                            src="/logo.jpeg"
-                            alt="Fastbreak Logo"
-                            className="h-12 w-auto mix-blend-lighten"
-                        />
-                    </Link>
-                </div>
-
-                <div className="bg-gray-900/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-cyan-400/20 p-8 relative max-w-2xl mx-auto">
+            <div className="max-w-2xl mx-auto relative z-10">
+                <div className="bg-gray-900/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-cyan-400/20 p-8 relative">
                     <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-cyan-400/10 via-blue-500/5 to-purple-500/10 blur-xl"></div>
 
                     <div className="relative z-10">
                         <div className="mb-10 text-center">
                             <h1 className="text-4xl font-black text-white mb-3 bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                                CREATE EVENT
+                                EDIT EVENT
                             </h1>
                             <div className="w-24 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mx-auto mt-4 rounded-full"></div>
                         </div>
@@ -153,22 +168,17 @@ export default function EventForm() {
                                     render={({ field }) => (
                                         <FormItem className="space-y-4">
                                             <FormLabel className="text-lg font-bold text-cyan-400 uppercase tracking-wide">Sport Type</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger className="h-14 text-lg border-2 border-gray-700 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 bg-gray-800/50 text-white rounded-xl shadow-lg font-semibold transition-all duration-300 hover:border-cyan-500">
                                                         <SelectValue placeholder="Select a sport" className="text-gray-400" />
                                                     </SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent className="bg-gray-800 border-gray-700 shadow-2xl rounded-xl max-h-[300px] overflow-y-auto">
-                                                    {sports.map((sport) => (
-                                                        <SelectItem
-                                                            key={sport.id}
-                                                            value={sport.name}
-                                                            className="text-lg py-4 text-white hover:bg-cyan-400/20 focus:bg-cyan-400/20 font-medium capitalize"
-                                                        >
-                                                            {sport.name}
-                                                        </SelectItem>
-                                                    ))}
+                                                <SelectContent className="bg-gray-800 border-gray-700 shadow-2xl rounded-xl">
+                                                    <SelectItem value="soccer" className="text-lg py-4 text-white hover:bg-cyan-400/20 focus:bg-cyan-400/20 font-medium">Soccer</SelectItem>
+                                                    <SelectItem value="basketball" className="text-lg py-4 text-white hover:bg-cyan-400/20 focus:bg-cyan-400/20 font-medium">Basketball</SelectItem>
+                                                    <SelectItem value="tennis" className="text-lg py-4 text-white hover:bg-cyan-400/20 focus:bg-cyan-400/20 font-medium">Tennis</SelectItem>
+                                                    <SelectItem value="baseball" className="text-lg py-4 text-white hover:bg-cyan-400/20 focus:bg-cyan-400/20 font-medium">Baseball</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage className="text-red-400 font-medium" />
@@ -281,7 +291,7 @@ export default function EventForm() {
                                         disabled={isSubmitting}
                                         className="w-full h-16 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 hover:from-cyan-400 hover:via-blue-400 hover:to-purple-500 text-black font-black text-xl rounded-xl shadow-2xl hover:shadow-cyan-400/25 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     >
-                                        {isSubmitting ? "Creating Event..." : "Launch Event"}
+                                        {isSubmitting ? "Updating Event..." : "Update Event"}
                                     </Button>
                                 </div>
                             </form>
