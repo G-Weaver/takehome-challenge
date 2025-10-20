@@ -37,8 +37,8 @@ interface Event {
   sports: {
     id: string
     name: string
-  }
-  venues: {
+  }[]
+  venues?: {
     id: string
     name: string
   }[]
@@ -178,7 +178,7 @@ export function EventsTable({ initialEvents, currentUserId }: EventsTableProps) 
               events.map((event) => (
                 <TableRow key={event.id} className="border-b border-gray-700 hover:bg-cyan-400/10 transition-colors duration-200">
                   <TableCell className="font-bold text-white text-base">{event.name}</TableCell>
-                  <TableCell className="capitalize font-semibold text-blue-300">{event.sports?.name}</TableCell>
+                  <TableCell className="capitalize font-semibold text-blue-300">{Array.isArray(event.sports) && event.sports[0] ? event.sports[0].name : ''}</TableCell>
                   <TableCell className="text-gray-300 font-medium">
                     {new Date(event.date_time).toLocaleString()}
                   </TableCell>

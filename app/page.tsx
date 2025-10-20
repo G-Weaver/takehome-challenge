@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button"
 import { getEvents } from "@/lib/actions/events.actions"
 import { EventsTable } from "@/components/events-table"
@@ -21,9 +22,11 @@ export default async function Home() {
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="mb-6 flex justify-between items-start">
           <Link href="/" className="transition-transform hover:scale-105 inline-block">
-            <img
+            <Image
               src="/logo.jpeg"
               alt="Fastbreak Logo"
+              width={192}
+              height={48}
               className="h-12 w-auto mix-blend-lighten"
             />
           </Link>

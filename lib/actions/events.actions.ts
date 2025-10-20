@@ -33,7 +33,7 @@ export async function getEvents(params?: {
     }
 
     if (params?.sportType) {
-      const { data: sport, error: sportError } = await supabase
+      const { data: sport } = await supabase
         .from("sports")
         .select("id")
         .ilike("name", params.sportType)
@@ -62,15 +62,15 @@ export async function getEvents(params?: {
 
         const venueMap = new Map(venues?.map(v => [v.id, v]) || [])
         events.forEach(event => {
-          event.venues = (event.venue_ids || [])
-            .map(id => venueMap.get(id))
-            .filter(Boolean)
+          (event as { venues?: { id: string; name: string }[] }).venues = (event.venue_ids || [])
+            .map((id: string) => venueMap.get(id))
+            .filter(Boolean) as { id: string; name: string }[]
         })
       }
     }
 
     return { success: true, data: events }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Failed to fetch events" }
   }
 }
@@ -91,7 +91,7 @@ export async function createEvent(data: {
       return { success: false, error: "You must be logged in to create an event" }
     }
 
-    let { data: sport, error: sportError } = await supabase
+    const { data: sport, error: sportError } = await supabase
       .from("sports")
       .select("id")
       .eq("name", data.sportType.toLowerCase())
@@ -101,7 +101,9 @@ export async function createEvent(data: {
       return { success: false, error: "Failed to fetch sport" }
     }
 
-    if (!sport) {
+    let sportData = sport
+
+    if (!sportData) {
       const { data: newSport, error: createSportError } = await supabase
         .from("sports")
         .insert({ name: data.sportType.toLowerCase() })
@@ -111,13 +113,13 @@ export async function createEvent(data: {
       if (createSportError) {
         return { success: false, error: `Failed to create sport: ${createSportError.message}` }
       }
-      sport = newSport
+      sportData = newSport
     }
 
     const venueIds: string[] = []
 
     for (const venueName of data.venues) {
-      let { data: venue, error: venueError } = await supabase
+      const { data: venue, error: venueError } = await supabase
         .from("venues")
         .select("id")
         .eq("name", venueName)
@@ -127,7 +129,9 @@ export async function createEvent(data: {
         continue
       }
 
-      if (!venue) {
+      let venueData = venue
+
+      if (!venueData) {
         const { data: newVenue, error: createVenueError } = await supabase
           .from("venues")
           .insert({
@@ -140,11 +144,11 @@ export async function createEvent(data: {
         if (createVenueError) {
           continue
         }
-        venue = newVenue
+        venueData = newVenue
       }
 
-      if (venue) {
-        venueIds.push(venue.id)
+      if (venueData) {
+        venueIds.push(venueData.id)
       }
     }
 
@@ -156,7 +160,7 @@ export async function createEvent(data: {
       .from("events")
       .insert({
         name: data.eventName,
-        sport_id: sport.id,
+        sport_id: sportData.id,
         venue_ids: venueIds,
         date_time: data.dateTime.toISOString(),
         description: data.description,
@@ -171,7 +175,7 @@ export async function createEvent(data: {
 
     revalidatePath("/")
     return { success: true, data: event }
-  } catch (error) {
+  } catch {
     return { success: false, error: "An unexpected error occurred" }
   }
 }
@@ -202,17 +206,19 @@ export async function getEventById(id: string) {
       return { success: false, error: error.message }
     }
 
+    const eventWithVenues = event as typeof event & { venues?: { id: string; name: string }[] }
+
     if (event.venue_ids && event.venue_ids.length > 0) {
       const { data: venues } = await supabase
         .from("venues")
         .select("id, name")
         .in("id", event.venue_ids)
 
-      event.venues = venues || []
+      eventWithVenues.venues = venues || []
     }
 
-    return { success: true, data: event }
-  } catch (error) {
+    return { success: true, data: eventWithVenues }
+  } catch {
     return { success: false, error: "Failed to fetch event" }
   }
 }
@@ -250,7 +256,7 @@ export async function updateEvent(
       return { success: false, error: "You don't have permission to edit this event" }
     }
 
-    let { data: sport, error: sportError } = await supabase
+    const { data: sport, error: sportError } = await supabase
       .from("sports")
       .select("id")
       .eq("name", data.sportType.toLowerCase())
@@ -260,7 +266,9 @@ export async function updateEvent(
       return { success: false, error: "Failed to fetch sport" }
     }
 
-    if (!sport) {
+    let sportData = sport
+
+    if (!sportData) {
       const { data: newSport, error: createSportError } = await supabase
         .from("sports")
         .insert({ name: data.sportType.toLowerCase() })
@@ -270,13 +278,13 @@ export async function updateEvent(
       if (createSportError) {
         return { success: false, error: `Failed to create sport: ${createSportError.message}` }
       }
-      sport = newSport
+      sportData = newSport
     }
 
     const venueIds: string[] = []
 
     for (const venueName of data.venues) {
-      let { data: venue, error: venueError } = await supabase
+      const { data: venue, error: venueError } = await supabase
         .from("venues")
         .select("id")
         .eq("name", venueName)
@@ -286,7 +294,9 @@ export async function updateEvent(
         continue
       }
 
-      if (!venue) {
+      let venueData = venue
+
+      if (!venueData) {
         const { data: newVenue, error: createVenueError } = await supabase
           .from("venues")
           .insert({
@@ -299,11 +309,11 @@ export async function updateEvent(
         if (createVenueError) {
           continue
         }
-        venue = newVenue
+        venueData = newVenue
       }
 
-      if (venue) {
-        venueIds.push(venue.id)
+      if (venueData) {
+        venueIds.push(venueData.id)
       }
     }
 
@@ -315,7 +325,7 @@ export async function updateEvent(
       .from("events")
       .update({
         name: data.eventName,
-        sport_id: sport.id,
+        sport_id: sportData.id,
         venue_ids: venueIds,
         date_time: data.dateTime.toISOString(),
         description: data.description,
@@ -331,7 +341,7 @@ export async function updateEvent(
 
     revalidatePath("/")
     return { success: true, data: event }
-  } catch (error) {
+  } catch {
     return { success: false, error: "An unexpected error occurred" }
   }
 }
@@ -371,7 +381,7 @@ export async function deleteEvent(id: string) {
 
     revalidatePath("/")
     return { success: true }
-  } catch (error) {
+  } catch {
     return { success: false, error: "An unexpected error occurred" }
   }
 }
@@ -390,7 +400,7 @@ export async function getSports() {
     }
 
     return { success: true, data: sports || [] }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Failed to fetch sports" }
   }
 }

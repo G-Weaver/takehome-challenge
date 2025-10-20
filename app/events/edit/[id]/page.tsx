@@ -35,7 +35,7 @@ import { toast } from "sonner"
 const formSchema = z.object({
     eventName: z.string().min(2, "Event name must be at least 2 characters"),
     sportType: z.string().min(1, "Please select a sport type"),
-    dateTime: z.date({ required_error: "Date and time is required" }),
+    dateTime: z.date({ message: "Date and time is required" }),
     description: z.string().min(10, "Description must be at least 10 characters"),
     venues: z.string().min(1, "At least one venue is required"),
 })
@@ -67,7 +67,17 @@ export default function EditEventForm() {
             const result = await getEventById(eventId)
 
             if (result.success && result.data) {
-                const event = result.data
+                const event = result.data as unknown as {
+                    id: string;
+                    name: string;
+                    date_time: string;
+                    description: string;
+                    sport_id: string;
+                    venue_ids: string[];
+                    created_by: string;
+                    sports: { id: string; name: string };
+                    venues?: { id: string; name: string }[];
+                }
                 const eventDate = new Date(event.date_time)
 
                 form.setValue("eventName", event.name)
@@ -75,7 +85,7 @@ export default function EditEventForm() {
                 form.setValue("dateTime", eventDate)
                 form.setValue("description", event.description)
 
-                const venueNames = event.venues?.map((v: any) => v.name).join(", ") || ""
+                const venueNames = event.venues?.map((v: { id: string; name: string }) => v.name).join(", ") || ""
                 form.setValue("venues", venueNames)
 
                 setDate(eventDate)

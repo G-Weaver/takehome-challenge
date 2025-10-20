@@ -33,11 +33,12 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import Link from "next/link"
+import Image from "next/image"
 
 const formSchema = z.object({
     eventName: z.string().min(2, "Event name must be at least 2 characters"),
     sportType: z.string().min(1, "Please select a sport type"),
-    dateTime: z.date({ required_error: "Date and time is required" }),
+    dateTime: z.date({ message: "Date and time is required" }),
     description: z.string().min(10, "Description must be at least 10 characters"),
     venues: z.string().min(1, "At least one venue is required"),
 })
@@ -103,9 +104,11 @@ export default function EventForm() {
             <div className="max-w-7xl mx-auto relative z-10">
                 <div className="mb-6">
                     <Link href="/" className="transition-transform hover:scale-105 inline-block">
-                        <img
+                        <Image
                             src="/logo.jpeg"
                             alt="Fastbreak Logo"
+                            width={192}
+                            height={48}
                             className="h-12 w-auto mix-blend-lighten"
                         />
                     </Link>
