@@ -33,16 +33,14 @@ export async function getEvents(params?: {
     }
 
     if (params?.sportType) {
-      const { data: sport } = await supabase
+      const { data: sport, error: sportError } = await supabase
         .from("sports")
         .select("id")
-        .eq("name", params.sportType.toLowerCase())
+        .ilike("name", params.sportType)
         .single()
 
       if (sport) {
         query = query.eq("sport_id", sport.id)
-      } else {
-        return { success: true, data: [] }
       }
     }
 

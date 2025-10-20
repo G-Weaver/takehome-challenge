@@ -137,7 +137,7 @@ export function EventsTable({ initialEvents, currentUserId }: EventsTableProps) 
         <div className="w-64">
           <Select value={sportFilter || "all"} onValueChange={handleSportFilter}>
             <SelectTrigger className="h-14 text-lg border-2 border-gray-700 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 bg-gray-800/50 text-white rounded-xl shadow-lg font-semibold transition-all duration-300 hover:border-cyan-500">
-              <SelectValue placeholder="Filter by sport" />
+              <SelectValue placeholder="All Sports" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700 shadow-2xl rounded-xl max-h-[300px] overflow-y-auto">
               <SelectItem value="all" className="text-lg py-4 text-white hover:bg-cyan-400/20 focus:bg-cyan-400/20 font-medium">All Sports</SelectItem>
@@ -145,9 +145,9 @@ export function EventsTable({ initialEvents, currentUserId }: EventsTableProps) 
                 <SelectItem
                   key={sport.id}
                   value={sport.name}
-                  className="text-lg py-4 text-white hover:bg-cyan-400/20 focus:bg-cyan-400/20 font-medium capitalize"
+                  className="text-lg py-4 text-white hover:bg-cyan-400/20 focus:bg-cyan-400/20 font-medium"
                 >
-                  {sport.name}
+                  <span className="capitalize">{sport.name}</span>
                 </SelectItem>
               ))}
             </SelectContent>
